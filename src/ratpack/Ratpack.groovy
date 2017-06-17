@@ -36,5 +36,23 @@ ratpack
                 response.send(it.right.toString(Charset.defaultCharset()))
             }
         })
+        post('bar', { HttpClient httpClient ->
+            request.body.flatMap({ body ->
+                // put form data into request registry
+                request.add(Form.class, context.parse(body, Parse.of(Form.class)))
+
+                httpClient.requestStream(new URI('http://httpbin.org/post')) { spec ->
+                    spec.post()
+                    spec.body.buffer body.buffer.copy()
+                }
+            }).flatMap {
+                it.getBody().toPromise()
+            }.then {
+                // retrieve form data from registry
+                Form form = request.get(Form.class)
+                response.headers.set('a', form.get('a'))
+                response.send(it.toString(Charset.defaultCharset()))
+            }
+        })
     }
 }
